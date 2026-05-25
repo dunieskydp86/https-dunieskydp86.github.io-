@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>LiFePO4 24V · Medidor de carga</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #e9f0f5;
+            margin: 0;
+            padding: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 500px;
+            width: 100%;
+            margin: auto;
+        }
+
+        /* Tarjeta principal */
+        .card {
+            background: white;
+            border-radius: 48px;
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.2);
+            padding: 24px 20px 32px;
+            transition: all 0.2s ease;
+        }
+
+        /* Encabezado */
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+            color: #0a2f44;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .badge {
+            font-size: 0.75rem;
+            background: #e0ebf3;
+            padding: 6px 14px;
+            border-radius: 40px;
+            color: #1a5d7d;
+            font-weight: 500;
+        }
+        .sub {
+            font-size: 0.85rem;
+            color: #3d6b8c;
+            border-left: 3px solid #6c9ebf;
+            padding-left: 12px;
+            margin: 12px 0 20px 0;
+            background: #f4f9fe;
+            border-radius: 20px;
+            line-height: 1.3;
+        }
+
+        /* Grupo de entrada de voltaje - Táctil y amigable */
+        .input-group {
+            margin: 20px 0 16px;
+        }
+        .input-label {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            display: block;
+            color: #1f4b62;
+        }
+        .voltage-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8fafc;
+            border-radius: 80px;
+            border: 1.5px solid #cde0ea;
+            padding: 4px 8px 4px 20px;
+            transition: 0.2s;
+        }
+        .voltage-box:focus-within {
+            border-color: #2c8fbe;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(44, 143, 190, 0.2);
+        }
+        /* Input numérico optimizado para móvil */
+        .voltage-input {
+            flex: 1;
+            font-size: 2.4rem;
+            font-weight: 700;
+            font-family: 'Courier New', 'SF Mono', monospace;
+            border: none;
+            background: transparent;
+            text-align: center;
+            padding: 12px 0;
+            color: #0c4a6e;
+            width: 100%;
+            letter-spacing: 1px;
+        }
+        .voltage-input:focus {
+            outline: none;
+        }
+        .voltage-unit {
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: #e2edf6;
+            padding: 8px 18px;
+            border-radius: 60px;
+            color: #1a6285;
+        }
+        /* Botones rápidos para voltajes típicos (muy útil en móvil) */
+        .quick-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 20px 0 10px;
+        }
+        .quick-btn {
+            background: #eef3f8;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1a5f82;
+            cursor: pointer;
+            transition: 0.1s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            flex: 0 0 auto;
+        }
+        .quick-btn:active {
+            background: #cddce9;
+            transform: scale(0.96);
+        }
+
+        /* Resultado principal */
+        .result-card {
+            background: linear-gradient(135deg, #e3f0f8 0%, #d4e6f2 100%);
+            border-radius: 48px;
+            padding: 20px 16px;
+            margin: 24px 0 18px;
+            text-align: center;
+        }
+        .percentage {
+            font-size: 3.8rem;
+            font-weight: 800;
+            color: #0a4b6e;
+            line-height: 1.1;
+        }
+        .percentage small {
+            font-size: 1.4rem;
+            font-weight: 500;
+        }
+        .status {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-top: 8px;
+            color: #1c5c7c;
+        }
+
+        /* Caja de consejos / alerta */
+        .advice-box {
+            background: #fff7e5;
+            border-radius: 32px;
+            padding: 14px 18px;
+            margin: 18px 0 16px;
+            font-size: 0.85rem;
+            border-left: 5px solid #f5b042;
+            color: #7a5a1a;
+        }
+
+        /* Tabla desplegable */
+        details {
+            margin-top: 20px;
+            background: #fbfefe;
+            border-radius: 28px;
+            padding: 8px 12px 12px;
+        }
+        summary {
+            font-weight: 700;
+            color: #2c7aa0;
+            padding: 8px 0;
+            cursor: pointer;
+            font-size: 0.9rem;
+            user-select: none;
+        }
+        .ref-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+            margin-top: 12px;
+        }
+        .ref-table th, .ref-table td {
+            padding: 10px 6px;
+            text-align: center;
+            border-bottom: 1px solid #d9e2ec;
+        }
+        .ref-table th {
+            background: #e7f0f7;
+            color: #1a5779;
+        }
+        .footer-note {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 18px;
+            color: #6b8da8;
+        }
+        button {
+            background: none;
+            border: none;
+        }
+        /* Ajustes extra para móvil pequeño */
+        @media (max-width: 460px) {
+            .card {
+                padding: 18px 16px 24px;
+            }
+            .voltage-input {
+                font-size: 1.8rem;
+            }
+            .voltage-unit {
+                font-size: 1.2rem;
+                padding: 6px 14px;
+            }
+            .percentage {
+                font-size: 2.8rem;
+            }
+            .quick-btn {
+                padding: 8px 14px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="card">
+        <h1>
+            🔋 LiFePO₄ 24V
+            <span class="badge">8 celdas · 150Ah</span>
+        </h1>
+        <div class="sub">
+            ⚡ Estimación desde <strong>voltaje en reposo</strong><br>
+            Batería 24V (cualquier Ah)
+        </div>
+
+        <!-- Entrada de voltaje optimizada móvil -->
+        <div class="input-group">
+            <div class="input-label">📐 Voltaje medido (en reposo)</div>
+            <div class="voltage-box">
+                <input type="text" id="voltageInput" inputmode="decimal" class="voltage-input" placeholder="26.0" value="26.0">
+                <div class="voltage-unit">V</div>
+            </div>
+        </div>
+
+        <!-- Botones rápidos táctiles (ayuda a ingresar valores comunes) -->
+        <div class="quick-buttons">
+            <button class="quick-btn" data-volt="27.2">🔋 100% (27.2V)</button>
+            <button class="quick-btn" data-volt="26.0">⚡ 50% (26.0V)</button>
+            <button class="quick-btn" data-volt="25.4">⚠️ 20% (25.4V)</button>
+            <button class="quick-btn" data-volt="24.0">🪫 10% (24.0V)</button>
+        </div>
+
+        <!-- Resultado dinámico -->
+        <div class="result-card" id="resultCard">
+            <div class="percentage" id="percentDisplay">50<small>%</small></div>
+            <div class="status" id="statusText">⚡ Carga media · Funcionamiento normal</div>
+        </div>
+
+        <!-- Consejos y acciones -->
+        <div class="advice-box" id="adviceText">
+            💡 <strong>Medición correcta:</strong> Deja la batería en reposo 20-30 min sin carga ni descarga.
+        </div>
+
+        <!-- Tabla de referencia -->
+        <details>
+            <summary>📋 Ver tabla de voltajes por % de carga</summary>
+            <table class="ref-table">
+                <thead>
+                <tr><th>SoC (%)</th><th>Voltaje (V)</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>100%</td><td>27.2</td><td>Llena · reposo</td></tr>
+                    <tr><td>95%</td><td>27.0</td><td>Casi llena</td></tr>
+                    <tr><td>90%</td><td>26.8</td><td>Muy alta</td></tr>
+                    <tr><td>80%</td><td>26.6</td><td>Óptima</td></tr>
+                    <tr><td>70%</td><td>26.4</td><td>Óptima</td></tr>
+                    <tr><td>60%</td><td>26.2</td><td>Estable</td></tr>
+                    <tr><td>50%</td><td>26.0</td><td>Nominal</td></tr>
+                    <tr><td>40%</td><td>25.8</td><td>Segura</td></tr>
+                    <tr><td>30%</td><td>25.6</td><td>Moderada</td></tr>
+                    <tr><td>20%</td><td>25.4</td><td>⚠️ Recargar pronto</td></tr>
+                    <tr><td>15%</td><td>25.0</td><td>Baja</td></tr>
+                    <tr><td>10%</td><td>24.0</td><td>⚠️ Advertencia</td></tr>
+                    <tr><td>5%</td><td>22.0</td><td>Crítica</td></tr>
+                    <tr><td>0%</td><td>20.0</td><td>🔴 Corte BMS</td></tr>
+                </tbody>
+            </table>
+            <div class="footer-note">* Medir siempre en reposo (sin carga ni cargando).</div>
+        </details>
+        <div class="footer-note">
+            📱 App offline | Valores para LiFePO4 24V (8 celdas serie)
+        </div>
+    </div>
+</div>
+
+<script>
+    // Puntos de la curva LiFePO4 24V (reposo)
+    const curvePoints = [
+        { v: 20.0, soc: 0 },
+        { v: 22.0, soc: 5 },
+        { v: 24.0, soc: 10 },
+        { v: 25.0, soc: 15 },
+        { v: 25.4, soc: 20 },
+        { v: 25.6, soc: 30 },
+        { v: 25.8, soc: 40 },
+        { v: 26.0, soc: 50 },
+        { v: 26.2, soc: 60 },
+        { v: 26.4, soc: 70 },
+        { v: 26.6, soc: 80 },
+        { v: 26.8, soc: 90 },
+        { v: 27.0, soc: 95 },
+        { v: 27.2, soc: 100 }
+    ];
+
+    // Convertir voltaje a SOC mediante interpolación lineal
+    function voltageToSOC(voltage) {
+        let v = parseFloat(voltage);
+        if (isNaN(v)) return null;
+        if (v >= 27.2) return 100;
+        if (v <= 20.0) return 0;
+
+        for (let i = 0; i < curvePoints.length - 1; i++) {
+            const p1 = curvePoints[i];
+            const p2 = curvePoints[i+1];
+            if (v >= p1.v && v <= p2.v) {
+                const ratio = (v - p1.v) / (p2.v - p1.v);
+                let soc = p1.soc + ratio * (p2.soc - p1.soc);
+                return Math.round(soc * 10) / 10;
+            }
+        }
+        return 0;
+    }
+
+    // Generar texto de estado y consejos
+    function getStatusAndAdvice(soc, voltage) {
+        if (soc === null) {
+            return { status: "❌ Voltaje inválido", advice: "Introduce un número válido, por ejemplo 26.4" };
+        }
+
+        let status = "";
+        let advice = "";
+
+        if (soc >= 95) {
+            status = "✅ Batería casi llena o llena · Lista para usar";
+            advice = "Voltaje excelente. Si acabas de cargar, espera 20-30 min para lectura real.";
+        } else if (soc >= 80) {
+            status = "🔋 Carga muy alta · Autonomía plena";
+            advice = "Rango óptimo para uso exigente. Sin preocupaciones.";
+        } else if (soc >= 50) {
+            status = "⚡ Carga media · Rendimiento estable";
+            advice = "Funcionamiento normal. Puedes seguir usando sin problema.";
+        } else if (soc >= 30) {
+            status = "🔻 Carga moderada · Considera recargar";
+            advice = "Batería aún útil, pero planifica una recarga si usarás mucha energía.";
+        } else if (soc >= 15) {
+            status = "⚠️ Batería baja · Recarga recomendada";
+            advice = "Por debajo del 30% acelera el desgaste. Conecta un cargador LiFePO4.";
+        } else if (soc > 0) {
+            status = "🪫 Muy descargada · ¡Carga urgente!";
+            advice = "Evita seguir descargando. Riesgo de corte por BMS. Carga inmediatamente.";
+        } else {
+            status = "🔴 CELDA VACÍA · Desconectar carga YA";
+            advice = "Voltaje por debajo del límite seguro. Recarga con cargador específico LFP.";
+        }
+
+        // Nota adicional si se detecta voltaje de carga
+        if (voltage > 27.2 && voltage <= 29.5) {
+            advice += " 🔌 El voltaje >27.2V sugiere que la batería está cargando. Para % real, deja reposar 30 min.";
+        } else if (voltage < 20.0 && voltage >= 10) {
+            advice += " 🚨 Voltaje extremadamente bajo. El BMS debería haber cortado. Revisa conexiones o carga ya.";
+        } else if (voltage >= 26.8 && voltage <= 27.2 && soc >= 90) {
+            advice += " ✅ Carga alta: ideal para almacenar o usar.";
+        }
+
+        return { status, advice };
+    }
+
+    // Actualizar toda la interfaz
+    function updateUI() {
+        const inputElem = document.getElementById('voltageInput');
+        let rawValue = inputElem.value.trim();
+        // Reemplazar comas por puntos
+        rawValue = rawValue.replace(',', '.');
+        const voltage = parseFloat(rawValue);
+
+        const percentSpan = document.getElementById('percentDisplay');
+        const statusSpan = document.getElementById('statusText');
+        const adviceDiv = document.getElementById('adviceText');
+        const resultCard = document.getElementById('resultCard');
+
+        if (isNaN(voltage)) {
+            percentSpan.innerHTML = '?<small>%</small>';
+            statusSpan.innerText = '❌ Valor inválido';
+            adviceDiv.innerHTML = '🧾 <strong>Formato incorrecto:</strong> usa números como 26.4 o 25.0';
+            resultCard.style.background = "linear-gradient(135deg, #f8e0e0 0%, #f2d0d0 100%)";
+            return;
+        }
+
+        const soc = voltageToSOC(voltage);
+        if (soc !== null && !isNaN(soc)) {
+            percentSpan.innerHTML = `${soc.toFixed(1)}<small>%</small>`;
+        } else {
+            percentSpan.innerHTML = '--<small>%</small>';
+        }
+
+        const { status, advice } = getStatusAndAdvice(soc, voltage);
+        statusSpan.innerText = status;
+        adviceDiv.innerHTML = `💡 <strong>Recomendación:</strong> ${advice}`;
+
+        // Cambiar color del resultado según nivel de carga
+        if (soc >= 70) {
+            resultCard.style.background = "linear-gradient(135deg, #daf1e4 0%, #c2e6d4 100%)";
+        } else if (soc >= 30) {
+            resultCard.style.background = "linear-gradient(135deg, #e3f0f8 0%, #d4e6f2 100%)";
+        } else if (soc >= 10) {
+            resultCard.style.background = "linear-gradient(135deg, #fff0dd 0%, #ffe2c4 100%)";
+        } else {
+            resultCard.style.background = "linear-gradient(135deg, #ffdede 0%, #fccfcf 100%)";
+        }
+    }
+
+    // Configurar eventos y validación de input en móvil
+    function init() {
+        const inputField = document.getElementById('voltageInput');
+        
+        // Permitir solo números, punto y un único separador decimal
+        inputField.addEventListener('input', function(e) {
+            let val = this.value;
+            // Reemplazar cualquier coma por punto
+            val = val.replace(',', '.');
+            // Permitir solo dígitos y un punto
+            val = val.replace(/[^0-9.]/g, '');
+            // Evitar más de un punto
+            const parts = val.split('.');
+            if (parts.length > 2) {
+                val = parts[0] + '.' + parts.slice(1).join('');
+            }
+            this.value = val;
+            updateUI();
+        });
+
+        // Botones rápidos
+        const quickBtns = document.querySelectorAll('.quick-btn');
+        quickBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const voltValue = btn.getAttribute('data-volt');
+                if (voltValue) {
+                    inputField.value = voltValue;
+                    updateUI();
+                    inputField.focus();
+                }
+            });
+            // Mejor respuesta táctil en móvil
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const voltValue = btn.getAttribute('data-volt');
+                if (voltValue) {
+                    inputField.value = voltValue;
+                    updateUI();
+                }
+            });
+        });
+
+        // Al cargar mostrar valores iniciales
+        updateUI();
+    }
+
+    // Inicializar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
